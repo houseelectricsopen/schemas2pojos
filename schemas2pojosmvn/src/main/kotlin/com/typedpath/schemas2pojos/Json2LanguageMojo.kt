@@ -9,7 +9,6 @@ import org.apache.maven.plugins.annotations.Parameter
 import java.nio.file.Path
 import java.nio.file.Paths
 
-
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.PathMatcher
@@ -67,10 +66,10 @@ val testList = listOf("**/global/address.json",
 
 fun main(args: Array<String>) {
 
-    val srcRelativePath = Paths.get("./Schema-2.5")
+    val srcRelativePath = Paths.get("./src")
 
     val schemaDefs = read(srcRelativePath,
-            toFileFilter(listOf("**/global/*.json")))
+            toFileFilter(listOf("**/samples/*.json")))
 
     schemaDefs.entries.forEach {
         println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")

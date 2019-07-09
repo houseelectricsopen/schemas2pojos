@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://justice.gov.uk/core/courts/address.json",
+  "description": "The address",
+  "type": "object",
+  "properties": {
+    "addr1": {
+      "description": "The address1",
+      "type": "string"
+    },
+    "addr2": {
+      "description": "The address2",
+      "type": "string"
+    },
+    "addr3": {
+      "description": "The address3",
+      "type": "string"
+    },
+    "addr4": {
+      "description": "The address4",
+      "type": "string"
+    },
+    "addr5": {
+      "description": "The address5",
+      "type": "string"
+    },
+    "zipcode": {
+      "description": "The post code",
+      "$ref": "simpletypedefs.json#/definitions/zipcode"
+    }
+  },
+  "required": [
+    "address1"
+  ],
+  "additionalProperties": false
+}

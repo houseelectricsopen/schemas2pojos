@@ -11,7 +11,7 @@ fun writeTypescript(schemaDefinitions: Map<String, SchemaDefinition>,
     }
 }
 
-private fun dashedFileName(schemaDef: SchemaDefinition) : String {
+private fun dashedFileName(schemaDef: TypeDefinition): String {
     val sb = StringBuilder()
     if (schemaDef.impliedShortName != null) {
         for (c in schemaDef.impliedShortName) {
@@ -24,16 +24,16 @@ private fun dashedFileName(schemaDef: SchemaDefinition) : String {
     return sb.toString()
 }
 
-//TODO use or lose destinationPackage
+//TODO use or lose destinationPackage, or change to package remapper function
 private fun writeTypescript(id: String, schemaDef: SchemaDefinition, destinationRootPath: Path, destinationPackage: String) {
 //    val destinationPackage = typescriptPackage(destinationRootPath, id)
     println("$id ${schemaDef.impliedPackage} ${schemaDef.impliedShortName}   <= ${schemaDef.srcFile}")
-    var destinationPath = destinationRootPath;
-    destinationPath = destinationPath.resolve("ts")
+    var destinationParentPath = destinationRootPath;
+    destinationParentPath = destinationParentPath.resolve("ts")
     schemaDef.impliedPackage.split(".").forEach {
-        destinationPath = destinationPath.resolve(it)
+        destinationParentPath = destinationParentPath.resolve(it)
     }
-    destinationPath = destinationPath.resolve("${dashedFileName(schemaDef)}.ts")
+    val destinationPath = destinationParentPath.resolve("${dashedFileName(schemaDef)}.ts")
     val file = destinationPath.toFile()
     file.parentFile.mkdirs()
 
@@ -49,8 +49,26 @@ private fun writeTypescript(id: String, schemaDef: SchemaDefinition, destination
 
     //write all the enums
 
+    schemaDef.definitions
+            .filter { it.value is EnumTypeDefinition }
+            .map { it.value as EnumTypeDefinition }
+            .forEach {
+                val enumDestinationPath = destinationParentPath.resolve("${dashedFileName(it)}.ts")
+                enumDestinationPath.toFile().writeText(typescriptSource(it))
+            }
+}
 
-
+private fun typescriptSource(enumDef: EnumTypeDefinition): String {
+    val result: String =
+            """
+//defines ${enumDef.description ?: enumDef.impliedShortName}
+export enum ${enumDef.impliedShortName} {
+${enumDef.enumValues.map{
+"""   $it = "$it"
+"""}.joinToString(",") }
+}
+""".trimMargin()
+    return result
 }
 
 private fun typescriptSource(schemaDef: SchemaDefinition, propertyToTypeString: (SchemaDefinition.PropertySpec) -> String): String {
@@ -62,7 +80,7 @@ private fun typescriptSource(schemaDef: SchemaDefinition, propertyToTypeString: 
     //collect all the imports
     val imports = schemaDef.reference2ParentPath
             .map {
-                val strPath = if (it.value.parent==null) "." else it.value.parent.toString()
+                val strPath = if (it.value.parent == null) "." else it.value.parent.toString()
                 """import { ${it.key.impliedCapitalizedShortName()} } from '${strPath}/${dashedFileName(it.key)}';"""
             }
             .joinToString("""
