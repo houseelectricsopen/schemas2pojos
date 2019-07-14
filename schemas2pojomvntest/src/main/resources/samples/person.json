@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://typedpath.com/sample/person.json",
+  "description": "The address",
+  "type": "object",
+  "properties": {
+    "firstname": {
+      "description": "The firstnamre",
+      "type": "string"
+    },
+    "address": {
+      "description": "The address",
+      "$ref": "address.json"
+    },
+    "personId": {
+      "description": "id",
+      "$ref": "#/definitions/personId.json"
+    }
+  },
+  "required": [
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "personId": {
+      "type": "object",
+      "properties": {
+        "nationalInsuranceNumber": {
+          "description": "NI no",
+          "type": "string"
+        },
+        "passportNumber": {
+          "description": "PassportNumber",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

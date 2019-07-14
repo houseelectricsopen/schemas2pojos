@@ -8,6 +8,9 @@ fun writeTypescript(schemaDefinitions: Map<String, SchemaDefinition>,
     // check references
     schemaDefinitions.entries.forEach {
         writeTypescript(it.key, it.value, destinationRootPath, destinationPackage, schema2TypescriptTypeName)
+        it.value.innerDefinitions.forEach {
+            writeTypescript(it.key, it.value, destinationRootPath, destinationPackage, schema2TypescriptTypeName)
+        }
     }
 }
 
@@ -43,7 +46,7 @@ private fun writeTypescript(id: String, schemaDef: SchemaDefinition, destination
         var result =
                 if (property.typeDefinition != null && property.typeDefinition is PrimitiveTypeDefinition) property.typeDefinition!!.impliedShortName
                 else if (property.typeDefinition != null && property.typeDefinition is SchemaDefinition) property.typeDefinition!!.impliedCapitalizedShortName()
-                else if (property.typeDefinition != null && property.typeDefinition is EnumTypeDefinition) "xstring"
+                else if (property.typeDefinition != null && property.typeDefinition is EnumTypeDefinition) "string"
                 else if (property.typeName==null) throw RuntimeException("property has null typeName specified for ${schemaDef.srcFile}.${property}")
                 else {
                     val theType = schemaTypeName2TypescriptType(property.typeName!!)
@@ -79,7 +82,8 @@ ${enumDef.enumValues.map{
     return result
 }
 
-private fun typescriptSource(schemaDef: SchemaDefinition, propertyToTypeString: (SchemaDefinition.PropertySpec) -> String): String {
+private fun typescriptSource(schemaDef: SchemaDefinition, propertyToTypeString: (SchemaDefinition.PropertySpec) -> String
+                             ): String {
     val classShortName = schemaDef.impliedCapitalizedShortName()
     fun optionalDesignator(p: SchemaDefinition.PropertySpec) = if (p.optional) "?" else ""
     fun oneToManyDesignator(p: SchemaDefinition.PropertySpec) = if (p.isList) "[]" else ""
@@ -87,6 +91,10 @@ private fun typescriptSource(schemaDef: SchemaDefinition, propertyToTypeString: 
 """
     //collect all the imports
     val imports = schemaDef.reference2ParentPath
+            // enums are currently mapped to string
+            .filter{ ! (it.key is EnumTypeDefinition) }
+            //primitive types are inline
+            .filter{ ! (it.key is PrimitiveTypeDefinition) }
             .map {
                 val strPath = if (it.value.parent == null) "." else it.value.parent.toString()
                 """import { ${it.key.impliedCapitalizedShortName()} } from '${strPath}/${dashedFileName(it.key)}';"""

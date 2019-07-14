@@ -31,39 +31,7 @@ private fun toFileFilter(strIncludes: List<String>): (File) -> Boolean {
     }
 }
 
-fun mainx(args: Array<String>) {
-    val contextPath="http://justice.gov.uk/core/courts/address.json".replace("http://", "");
-    val toPath  ="http://justice.gov.uk/core/courts/courtsDefinitions.json".replace("http://", "");
-    // courtsDefinitions.json#/definitions/ukGovPostCode
-
-    System.out.println(Paths.get(contextPath).relativize(Paths.get(toPath)))
-    System.out.println(Paths.get(contextPath).parent.relativize(Paths.get(toPath)))
-
-    System.out.println(Paths.get(contextPath).resolve(Paths.get(toPath)))
-
-}
-
-
-val testList = listOf("**/global/address.json",
-        "**/global/courtCentre.json",
-        "**/global/courtApplicationParty.json",
-        "**/global/organisation.json",
-        "**/global/associatedPerson.json",
-        "**/global/person.json",
-        "**/global/defendant.json",
-        "**/global/personDefendant.json",
-        "**/global/legalEntityDefendant.json",
-        "**/global/judicialResult.json",
-        "**/global/nextHearing.json",
-        "**/global/delegatedPowers.json",
-        "**/global/defendantAlias.json",
-        "**/global/offence.json",
-        "**/global/prosecutingAuthority.json",
-        "**/global/courtsDefinitions.json")
-
-
-
-
+/**for debugging */
 fun main(args: Array<String>) {
 
     val srcRelativePath = Paths.get("./src")
@@ -87,16 +55,45 @@ fun main(args: Array<String>) {
                                                                   else if (schemaName.equals("int")) "number"
                                                                   else null
 
-
     writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
-
 
 }
 
-
-@Mojo(name = "json2language", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+@Mojo(name = "json2Typescript", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 class Json2LanguageMojo : AbstractMojo() {
+    @Parameter(defaultValue = "", property = "sourceRoot", required = true)
+    private val sourceRoot: String? = null
+
+    @Parameter(defaultValue = "", property = "destinationRoot", required = true)
+    private val destinationRoot: String? = null
+
+
     @Throws(MojoExecutionException::class, MojoFailureException::class)
     override fun execute() {
+        val srcRelativePath = Paths.get("./src")
+
+        val schemaDefs = read(srcRelativePath,
+                toFileFilter(listOf("**/samples/*.json")))
+
+        schemaDefs.entries.forEach {
+            println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")
+            it.value.root.properties.forEach {
+                println("  prop: ${it} ");
+            }
+            it.value.definitions.forEach {
+                println("  def:  ${it}")
+            }
+        }
+
+        val destinationRootPath = Paths.get("target/generated")
+
+        fun schema2TypescriptTypeName(schemaName: String): String?  = if (schemaName.equals("string")) "string"
+        else if (schemaName.equals("int")) "number"
+        else null
+
+        writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
+
+
+
     }
 }
