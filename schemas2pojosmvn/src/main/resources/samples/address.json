@@ -4,6 +4,10 @@
   "description": "The address",
   "type": "object",
   "properties": {
+    "housenumber": {
+      "description": "The housenumber",
+      "type": "int"
+    },
     "addr1": {
       "description": "The address1",
       "type": "string"

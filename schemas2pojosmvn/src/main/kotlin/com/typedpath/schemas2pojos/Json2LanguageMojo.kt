@@ -83,7 +83,12 @@ fun main(args: Array<String>) {
 
     val destinationRootPath = Paths.get("target/generated")
 
-    writeTypescript(schemaDefs, destinationRootPath, "com.coconuts")
+    fun schema2TypescriptTypeName(schemaName: String): String?  = if (schemaName.equals("string")) "string"
+                                                                  else if (schemaName.equals("int")) "number"
+                                                                  else null
+
+
+    writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
 
 
 }
