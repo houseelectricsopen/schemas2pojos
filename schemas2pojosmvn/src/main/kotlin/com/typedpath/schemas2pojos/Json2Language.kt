@@ -67,13 +67,18 @@ class Json2LanguageMojo : AbstractMojo() {
     @Parameter(defaultValue = "", property = "destinationRoot", required = true)
     private val destinationRoot: String? = null
 
+    @Parameter(defaultValue = "", property = "sourceIncludes", required = false)
+    private val sourceIncludes: String? = null
+
 
     @Throws(MojoExecutionException::class, MojoFailureException::class)
     override fun execute() {
-        val srcRelativePath = Paths.get("./src")
+       val srcRelativePath = Paths.get(sourceRoot)
+
+        println("searching $srcRelativePath with includes $sourceIncludes")
 
         val schemaDefs = read(srcRelativePath,
-                toFileFilter(listOf("**/samples/*.json")))
+                toFileFilter(if (sourceIncludes==null) listOf("*/**/json") else sourceIncludes.split(",") ))
 
         schemaDefs.entries.forEach {
             println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")
@@ -85,15 +90,13 @@ class Json2LanguageMojo : AbstractMojo() {
             }
         }
 
-        val destinationRootPath = Paths.get("target/generated")
+        val destinationRootPath = Paths.get(destinationRoot)
 
         fun schema2TypescriptTypeName(schemaName: String): String?  = if (schemaName.equals("string")) "string"
         else if (schemaName.equals("int")) "number"
         else null
 
         writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
-
-
 
     }
 }

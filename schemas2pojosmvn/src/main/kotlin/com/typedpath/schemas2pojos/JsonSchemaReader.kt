@@ -9,6 +9,7 @@ import javax.script.ScriptEngineManager
 
     const val DEFINITIONS_PROPERTYNAME = "definitions"
     const val DEFINITIONS_PATH_PREFIX =  "#/" + DEFINITIONS_PROPERTYNAME + "/"
+    const val DEFAULT_ENUM_TYPE="string"
 
 
 // TODO checks at this level : duplicate ids in files
@@ -72,6 +73,7 @@ fun read(rootPath: Path, filter: (File) -> Boolean):
             }
     val schemaDefs = mutableMapOf<String, SchemaDefinition>()
     jsonFiles.forEach {
+        println("reading $it")
         readFlat(it, schemaDefs)
     }
     resolveReferences(schemaDefs)
@@ -125,18 +127,24 @@ private fun readProperties(jsProperties: ScriptObjectMirror, jsRequired: ScriptO
 }
 
 private fun readTypeDefinition(impliedPackageName: String, name: String, jsDefinition: ScriptObjectMirror): TypeDefinition {
-    if ((!jsDefinition.containsKey("type") || jsDefinition.get("type") == null)) {
-        throw RuntimeException("type $name has no type")
-    }
-    var type = jsDefinition.get("type") as String
     val isEnum = jsDefinition.containsKey("enum")
+    var type: String?;
+    if ((!jsDefinition.containsKey("type") || jsDefinition.get("type") == null)) {
+        if (isEnum) {
+            type = DEFAULT_ENUM_TYPE
+        } else {
+            throw RuntimeException("type $name has no type")
+        }
+    } else {
+        type = jsDefinition.get("type") as String
+    }
     val description = jsDefinition.get("description") as String?
 
     return if (isEnum) {
         val enumValues = (jsDefinition.get("enum") as ScriptObjectMirror).values.map { it as String }.toList()
         EnumTypeDefinition(impliedPackageName, name, description, enumValues, type)
     } else {
-        return PrimitiveTypeDefinition(name, type, description,
+        return PrimitiveTypeDefinition(name, type!!, description,
                 jsDefinition.get("pattern") as String?)
     }
     //TODO read object definitions too

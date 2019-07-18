@@ -2,49 +2,33 @@
 <!-- this is for domainsample-domain-tools development-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.typedpath</groupId>
     <artifactId>schemas2pojosmvnsample</artifactId>
     <version>1.0.1</version>
-
     <dependencies>
-
     </dependencies>
-
     <build>
         <plugins>
-
             <plugin>
                 <groupId>com.typedpath</groupId>
                 <artifactId>schemas2pojosmvn</artifactId>
                 <version>1.0.1</version>
-
                 <executions>
-
                     <execution>
-
                         <phase>generate-sources</phase>
                         <id>json2Typescript</id>
                         <goals>
                             <goal>json2Typescript</goal>
                         </goals>
                         <configuration>
-                            <!--sourceRoot>${project.basedir}/../domainsample-domain-tools-examples/src/main/java</sourceRoot-->
                             <sourceRoot>${project.basedir}/src/resources/samples</sourceRoot>
+                            <sourceIncludes>**/samples/*.json</sourceIncludes>
                             <destinationRoot>${project.basedir}/target/typescript</destinationRoot>
-                            <!--sourceRoot>${project.basedir}/src/main/resources/json/schema</sourceRoot-->
                         </configuration>
-
-
                     </execution>
                 </executions>
-
                 <dependencies>
-
                 </dependencies>
-
-
-
             </plugin>
         </plugins>
     </build>
