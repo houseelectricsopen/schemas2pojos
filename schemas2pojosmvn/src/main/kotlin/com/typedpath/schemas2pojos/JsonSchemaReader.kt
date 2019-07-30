@@ -7,9 +7,10 @@ import java.nio.file.Paths
 import javax.script.ScriptEngineManager
 
 
-    const val DEFINITIONS_PROPERTYNAME = "definitions"
-    const val DEFINITIONS_PATH_PREFIX =  "#/" + DEFINITIONS_PROPERTYNAME + "/"
-    const val DEFAULT_ENUM_TYPE="string"
+const val DEFINITIONS_PROPERTYNAME = "definitions"
+const val DEFINITIONS_PATH_PREFIX = "#/" + DEFINITIONS_PROPERTYNAME + "/"
+const val DEFINITIONS_PREFIX = "/" + DEFINITIONS_PROPERTYNAME + "/"
+const val DEFAULT_ENUM_TYPE = "string"
 
 
 // TODO checks at this level : duplicate ids in files
@@ -29,18 +30,25 @@ class EnumTypeDefinition(val impliedPackage: String, impliedShortName: String, v
 }
 
 class SchemaDefinition(val srcFile: File, val id: String,
-                       val definitions: Map<String, TypeDefinition>,  val innerDefinitions: Map<String, SchemaDefinition>,
+                       val definitions: Map<String, TypeDefinition>, val innerDefinitions: Map<String, SchemaDefinition>,
                        val root: ClassSpec,
                        val impliedPackage: String, impliedShortName: String) :
         TypeDefinition(impliedShortName) {
+    var parent: SchemaDefinition? = null
     var description: String? = null
     val reference2ParentPath = mutableMapOf<TypeDefinition, Path>()
 
     val idPath = id.replace("http://", "");
+    fun rootIdPath() : String{
+        var highest: SchemaDefinition = this
+        while (highest.parent!=null) highest = highest.parent!!
+        return highest.idPath
+    }
 
     // create a type tree
 // TODO make isComplex a var since it depends on a lookup of contained property types
-    class PropertySpec(val optional: Boolean, val isList: Boolean, val isComplex: Boolean, val name: String
+    class PropertySpec(val optional: Boolean, val isList: Boolean, val isComplex: Boolean, val name: String,
+                       val isIntrinsicSchema: Boolean
     ) {
         var typeName: String? = null
         var typeRef: String? = null
@@ -89,40 +97,55 @@ fun stringToJson(strJson: String): ScriptObjectMirror {
     return engine.eval(json) as ScriptObjectMirror
 }
 
-private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptional: Boolean): SchemaDefinition.PropertySpec {
+private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptional: Boolean, jsFile: File, contextualPackageName: String, parentContextualName: String): SchemaDefinition.PropertySpec {
     var typeNameAttr = jsProperty.get("type") as String?
     var typeRefAttr: String? = null
     var isList = false
     var isComplex = false
+    var intrinsicSchema: SchemaDefinition? = null
     //TODO read minItems
     if ("array".equals(typeNameAttr)) {
         isList = true
+        if (!jsProperty.containsKey("items")) {
+            throw java.lang.RuntimeException("failed to read array $name because items is not specified ")
+        }
         //TODO read items attribute
         val jsItems = jsProperty.get("items") as ScriptObjectMirror
         if (jsItems == null) {
             throw RuntimeException("failed to readFlat array property $name no items property")
         }
         typeRefAttr = jsItems.get("\$ref") as String?
+        if (jsItems.containsKey("type")) {
+            typeNameAttr = jsItems.get("type") as String
+        }
 
     } else {
         if ("object".equals(typeNameAttr)) isComplex = true
         typeRefAttr = jsProperty.get("\$ref") as String?
+        if (typeRefAttr == null && isComplex) {
+            //readProperties()
+            intrinsicSchema = jsonToSchemaDef(jsProperty, jsFile, contextualPackageName, "${parentContextualName}_$name")
+        }
+
         // TODO if there is no ref should try to read contained definition
         // hence isComplex need to be a var
     }
 
-    return SchemaDefinition.PropertySpec(isOptional, isList, isComplex, name).apply {
+    return SchemaDefinition.PropertySpec(isOptional, isList, isComplex, name, intrinsicSchema != null).apply {
         description = jsProperty.get("description") as String?
         typeRef = typeRefAttr
         typeName = typeNameAttr
+        typeDefinition = intrinsicSchema
+        println("xxxxxx $name typeName: $typeName typeRef: $typeRef")
     }
 }
 
-private fun readProperties(jsProperties: ScriptObjectMirror, jsRequired: ScriptObjectMirror?): List<SchemaDefinition.PropertySpec> {
+private fun readProperties(jsProperties: ScriptObjectMirror, jsRequired: ScriptObjectMirror?,
+                           jsonFile: File, contextualPackageName: String, parentContextualName: String): List<SchemaDefinition.PropertySpec> {
 
     return jsProperties.keys.map { name ->
         readProperty(name, jsProperties.get(name) as ScriptObjectMirror,
-                jsRequired == null || !jsRequired.containsValue(name))
+                jsRequired == null || !jsRequired.containsValue(name), jsonFile, contextualPackageName, parentContextualName)
     }
 }
 
@@ -166,7 +189,7 @@ private fun readInnerDefinitions(jsDefinitions: ScriptObjectMirror, jsonFile: Fi
     val result = mutableMapOf<String, SchemaDefinition>()
     jsDefinitions.entries.map { Pair(it.key, it.value as ScriptObjectMirror) }
             .filter { "object".equals(it.second.get("type")) }
-            .forEach { result.put(it.first, jsonToSchemaDef(it.second, jsonFile, contextualPackage, it.first )) }
+            .forEach { result.put(it.first, jsonToSchemaDef(it.second, jsonFile, contextualPackage, it.first)) }
     return result
 }
 
@@ -178,13 +201,13 @@ private fun jsonToSchemaDef(jsonFile: File): SchemaDefinition {
 }
 
 
-private fun jsonToSchemaDef( jsonSchema: ScriptObjectMirror, jsonFile: File, contextualPackage: String?=null, contextualName: String?=null): SchemaDefinition {
+private fun jsonToSchemaDef(jsonSchema: ScriptObjectMirror, jsonFile: File, contextualPackage: String? = null, contextualName: String? = null): SchemaDefinition {
     try {
         var impliedPackage: String?
         val impliedShortName: String?
         var name: String?
         var id: String?
-        if ( jsonSchema.containsKey("id")) {
+        if (jsonSchema.containsKey("id")) {
             id = jsonSchema.get("id").toString()
             name = id.replace("http://", "").replace(".json", "")
             val lastSlashIndex = name.lastIndexOf('/')
@@ -195,27 +218,27 @@ private fun jsonToSchemaDef( jsonSchema: ScriptObjectMirror, jsonFile: File, con
                     part.split('.').reversed().joinToString(".")
                 } else part
             }.joinToString(".")
+
         } else {
-            if (contextualPackage==null) throw java.lang.RuntimeException("missing contextual package or id in ${jsonFile.path}")
-            if (contextualName==null) throw java.lang.RuntimeException("missing contextual name or id in ${jsonFile.path}")
-            id=""
+            if (contextualPackage == null) throw java.lang.RuntimeException("missing contextual package or id in ${jsonFile!!.path}")
+            if (contextualName == null) throw java.lang.RuntimeException("missing contextual name or id in ${jsonFile!!.path}")
+            id = ""
             impliedPackage = contextualPackage
             impliedShortName = contextualName
             name = contextualName
         }
 
-
-
         var properties = listOf<SchemaDefinition.PropertySpec>()
         if (jsonSchema.containsKey("properties")) {
-            properties = readProperties(jsonSchema.get("properties") as ScriptObjectMirror, jsonSchema.get("required") as ScriptObjectMirror?)
+            properties = readProperties(jsonSchema.get("properties") as ScriptObjectMirror, jsonSchema.get("required") as ScriptObjectMirror?, jsonFile, impliedPackage, impliedShortName)
+
         }
         var primitiveDefinitions = mapOf<String, TypeDefinition>()
         var innerDefinitions = mapOf<String, SchemaDefinition>()
         if (jsonSchema.containsKey(DEFINITIONS_PROPERTYNAME)) {
             primitiveDefinitions = readPrimitiveDefinitions(impliedPackage, jsonSchema.get(DEFINITIONS_PROPERTYNAME) as ScriptObjectMirror)
             //TODO innerClasses = readInnderClasses(jsonSchema.get(DEFINITIONS_PROPERTYNAME) as ScriptObjectMirror)
-            innerDefinitions = readInnerDefinitions(jsonSchema.get(DEFINITIONS_PROPERTYNAME) as ScriptObjectMirror, jsonFile, impliedPackage )
+            innerDefinitions = readInnerDefinitions(jsonSchema.get(DEFINITIONS_PROPERTYNAME) as ScriptObjectMirror, jsonFile, impliedPackage)
         }
 
 
@@ -249,7 +272,8 @@ private fun readFlat(jsonFile: File, schemaDefs: MutableMap<String, SchemaDefini
 private fun findByRelativeId(schemaDefs: MutableMap<String, SchemaDefinition>, context: SchemaDefinition,
                              relativeTypeRef: String): SchemaDefinition? {
     schemaDefs.forEach {
-        val relPath = Paths.get(context.idPath).parent.relativize(Paths.get(it.value.idPath))
+        //TODO what if idPath is not ther
+        val relPath = Paths.get(context.rootIdPath()).parent.relativize(Paths.get(it.value.idPath))
         if (relPath.toString().equals(relativeTypeRef)) {
             return it.value
         }
@@ -258,13 +282,12 @@ private fun findByRelativeId(schemaDefs: MutableMap<String, SchemaDefinition>, c
 }
 
 
-
 private fun resolveReference(schemaDefs: MutableMap<String, SchemaDefinition>,
                              context: SchemaDefinition, typeRef: String): TypeDefinition {
     var isInnerRef = typeRef.startsWith(DEFINITIONS_PATH_PREFIX)
     println("""resolveReference isInnerRef:$isInnerRef typeDef:"$typeRef" DEFINITIONS_PATH_PREFIX:"$DEFINITIONS_PATH_PREFIX"   """)
-    return if (isInnerRef) resolveInternalRef(context,  typeRef.substring(DEFINITIONS_PATH_PREFIX.length).replace(".json", ""))
-          else resolveExternalReference(schemaDefs, context, typeRef )
+    return if (isInnerRef) resolveInternalRef(context, typeRef.substring(DEFINITIONS_PATH_PREFIX.length).replace(".json", ""))
+    else resolveExternalReference(schemaDefs, context, typeRef)
 
 }
 
@@ -272,29 +295,34 @@ private fun resolveInternalRef(context: SchemaDefinition, typeRef: String): Type
     val resolved = if (context.definitions.containsKey(typeRef)) context.definitions.get(typeRef)
     else if (context.innerDefinitions.containsKey(typeRef)) context.innerDefinitions.get(typeRef)
     else null
-    if (resolved!=null && resolved is SchemaDefinition) {
+    if (resolved != null && resolved is SchemaDefinition) {
         var contextParentPath = Paths.get(".");
-        context.impliedPackage.split(".").forEach{contextParentPath=contextParentPath.resolve(it)}
+        context.impliedPackage.split(".").forEach { contextParentPath = contextParentPath.resolve(it) }
         var referredPath = Paths.get(".")
-        resolved.impliedPackage.split(".").forEach { referredPath=referredPath.resolve(it) }
-        referredPath=referredPath.resolve(resolved.impliedShortName)
-        context.reference2ParentPath.put(resolved, contextParentPath.relativize(referredPath    ))
+        resolved.impliedPackage.split(".").forEach { referredPath = referredPath.resolve(it) }
+        referredPath = referredPath.resolve(resolved.impliedShortName)
+        context.reference2ParentPath.put(resolved, contextParentPath.relativize(referredPath))
         return resolved!!
-    }
-    else throw java.lang.RuntimeException("cant resolve $typeRef in $context")
+    } else throw java.lang.RuntimeException("cant resolve $typeRef in $context")
 }
-
-
 
 
 //TODO make type super class
 private fun resolveExternalReference(schemaDefs: MutableMap<String, SchemaDefinition>,
-                             context: SchemaDefinition, typeRef: String): TypeDefinition {
+                                     context: SchemaDefinition, typeRef: String): TypeDefinition {
 
 
     val hashIndex = typeRef.indexOf('#')
     val path = if (-1 != hashIndex) {
-        Pair(typeRef.substring(0, hashIndex).trim(), typeRef.substring(hashIndex + DEFINITIONS_PATH_PREFIX.length))
+        var subpath: String? = typeRef.substring(hashIndex + 1)
+        //TO DO review this
+        subpath = if (subpath!!.startsWith(DEFINITIONS_PATH_PREFIX)) {
+            subpath.substring(DEFINITIONS_PATH_PREFIX.length)
+        } else if (subpath!!.startsWith(DEFINITIONS_PREFIX)) {
+            subpath.substring(DEFINITIONS_PREFIX.length)
+        } else null
+
+        Pair(typeRef.substring(0, hashIndex).trim(), subpath)
     } else {
         Pair(typeRef.trim(), null)
     }
@@ -315,7 +343,7 @@ private fun resolveExternalReference(schemaDefs: MutableMap<String, SchemaDefini
     // if (!(mapEnumsAsString && referredSchema is EnumTypeDefinition))
 
     val result: TypeDefinition
-    if (subPath!=null) {
+    if (subPath != null) {
         if (!referredSchema!!.definitions.containsKey(subPath)) {
             throw RuntimeException("cant find primitive def $subPath in $rootName full ref $typeRef in ${context.srcFile}")
         }
@@ -324,22 +352,45 @@ private fun resolveExternalReference(schemaDefs: MutableMap<String, SchemaDefini
         result = referredSchema
     }
 
+    println("resolveExternalReference resolved ${context.impliedShortName}.$typeRef to $result ")
+
     //TODO use the package location to determine relative path
-    context.reference2ParentPath.put(result, Paths.get(context.idPath).parent.relativize(Paths.get(referredSchema.idPath)))
+    context.reference2ParentPath.put(result, Paths.get(context.rootIdPath()).parent.relativize(Paths.get(referredSchema.idPath)))
 
     return result
+}
+
+//TODO
+private fun flattenWithIntrinsics(schemaDefs: MutableMap<String, SchemaDefinition>) {
+
+}
+
+private fun resolveReferences(schemaDefs: MutableMap<String, SchemaDefinition>, schemaDef: SchemaDefinition) {
+    schemaDef.root.properties.forEach {
+        if (it.isIntrinsicSchema) {
+            val propertyType = it.typeDefinition as SchemaDefinition
+            propertyType.parent=schemaDef
+            //if (propertyType.root.properties != null) {
+            //    propertyType.root.properties.filter { it.typeDefinition != null && it.typeDefinition is SchemaDefinition }
+            //            .map { it.typeDefinition as SchemaDefinition }.forEach { it.parent = schemaDef }
+            //}
+            resolveReferences(schemaDefs, propertyType)
+        } else if (it.typeRef != null) {
+            println("trying to resolve ${schemaDef.root.fullname}.${it.name}::${it.typeRef}")
+            val typeDefinition = resolveReference(schemaDefs, schemaDef, it.typeRef!!)
+            it.typeDefinition = typeDefinition
+            println("resolved ${schemaDef.root.fullname}.${it.name}::${it.typeRef} to $typeDefinition")
+        }
+    }
 }
 
 private fun resolveReferences(schemaDefs: MutableMap<String, SchemaDefinition>) {
 // for each property with a ref look up a primitive def
     schemaDefs.forEach {
         val schemaDef = it.value
-        it.value.root.properties.forEach {
-            if (it.typeRef != null) {
-                println("trying to resolve ${schemaDef.root.fullname}.${it.name}::${it.typeRef}")
-                val typeDefinition = resolveReference(schemaDefs, schemaDef, it.typeRef!!)
-                it.typeDefinition = typeDefinition
-            }
-        }
+        resolveReferences(schemaDefs, schemaDef)
     }
+
 }
+
+

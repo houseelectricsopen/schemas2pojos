@@ -31,6 +31,11 @@
     "zipcode": {
       "description": "The post code",
       "$ref": "simpletypedefs.json#/definitions/zipcode"
+    },
+
+    "systemId": {
+      "description": "The technical identifier of a document",
+      "$ref": "simpletypedefs.json#/definitions/uuid"
     }
   },
   "required": [

@@ -21,9 +21,15 @@
                             <goal>json2Typescript</goal>
                         </goals>
                         <configuration>
-                            <sourceRoot>${project.basedir}/src/resources/samples</sourceRoot>
-                            <sourceIncludes>**/samples/*.json</sourceIncludes>
+                            <sourceRoot>${project.basedir}/src/main/resources/samples</sourceRoot>
+                            <sourceIncludes>**/*.json</sourceIncludes>
                             <destinationRoot>${project.basedir}/target/typescript</destinationRoot>
+                            <typeMappings>
+                                <typeMapping><from>string</from><to>string</to></typeMapping>
+                                <typeMapping><from>integer</from><to>number</to></typeMapping>
+                                <typeMapping><from>int</from><to>number</to></typeMapping>
+                                <typeMapping><from>boolean</from><to>boolean</to></typeMapping>
+                            </typeMappings>
                         </configuration>
                     </execution>
                 </executions>

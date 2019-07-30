@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "id": "http://typedpath.com/sample/person.json",
-  "description": "The address",
+  "description": "A person",
   "type": "object",
   "properties": {
     "firstname": {
@@ -15,6 +15,20 @@
     "personId": {
       "description": "id",
       "$ref": "#/definitions/personId.json"
+    },
+    "previousAddresses": {
+      "type": "array",
+      "items": {
+        "$ref": "address.json"
+      }
+    },
+    "favoriteColor": {
+       "type": "object",
+      "properties": {
+        "red": {
+            "type": "integer"
+         }
+        }
     }
   },
   "required": [

@@ -14,15 +14,16 @@ import java.nio.file.FileSystems
 import java.nio.file.PathMatcher
 import java.util.stream.Collectors
 
-private fun pathMatcher(filter: String): PathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + filter.trim { it <= ' ' })
 
-private fun toFileFilter(strIncludes: List<String>): (File) -> Boolean {
+public fun toFileFilter(strIncludes: List<String>): (File) -> Boolean {
     val actualIncludes =
             if (strIncludes.isEmpty()) {
                 listOf("**/*.json")
             } else {
                 strIncludes
             }
+    fun pathMatcher(filter: String): PathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + filter.trim { it <= ' ' })
+
     val sourceIncludes = actualIncludes.stream().map({ f -> pathMatcher(f) }).collect(
             Collectors.toList<PathMatcher>()
     )
@@ -53,50 +54,11 @@ fun main(args: Array<String>) {
 
     fun schema2TypescriptTypeName(schemaName: String): String?  = if (schemaName.equals("string")) "string"
                                                                   else if (schemaName.equals("int")) "number"
+                                                                  else if (schemaName.equals("integer")) "number"
                                                                   else null
 
     writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
 
 }
 
-@Mojo(name = "json2Typescript", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
-class Json2LanguageMojo : AbstractMojo() {
-    @Parameter(defaultValue = "", property = "sourceRoot", required = true)
-    private val sourceRoot: String? = null
 
-    @Parameter(defaultValue = "", property = "destinationRoot", required = true)
-    private val destinationRoot: String? = null
-
-    @Parameter(defaultValue = "", property = "sourceIncludes", required = false)
-    private val sourceIncludes: String? = null
-
-
-    @Throws(MojoExecutionException::class, MojoFailureException::class)
-    override fun execute() {
-       val srcRelativePath = Paths.get(sourceRoot)
-
-        println("searching $srcRelativePath with includes $sourceIncludes")
-
-        val schemaDefs = read(srcRelativePath,
-                toFileFilter(if (sourceIncludes==null) listOf("*/**/json") else sourceIncludes.split(",") ))
-
-        schemaDefs.entries.forEach {
-            println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")
-            it.value.root.properties.forEach {
-                println("  prop: ${it} ");
-            }
-            it.value.definitions.forEach {
-                println("  def:  ${it}")
-            }
-        }
-
-        val destinationRootPath = Paths.get(destinationRoot)
-
-        fun schema2TypescriptTypeName(schemaName: String): String?  = if (schemaName.equals("string")) "string"
-        else if (schemaName.equals("int")) "number"
-        else null
-
-        writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
-
-    }
-}

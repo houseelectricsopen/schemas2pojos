@@ -44,14 +44,14 @@ private fun writeTypescript(id: String, schemaDef: SchemaDefinition, destination
 
     fun propertyToTypeString(property: SchemaDefinition.PropertySpec): String {
         var result =
-                if (property.typeDefinition != null && property.typeDefinition is PrimitiveTypeDefinition) property.typeDefinition!!.impliedShortName
+                if (property.typeDefinition != null && property.typeDefinition is PrimitiveTypeDefinition) schemaTypeName2TypescriptType(property.typeDefinition!!.impliedShortName)
                 else if (property.typeDefinition != null && property.typeDefinition is SchemaDefinition) property.typeDefinition!!.impliedCapitalizedShortName()
                 else if (property.typeDefinition != null && property.typeDefinition is EnumTypeDefinition) "string"
                 else if (property.typeName==null) throw RuntimeException("property has null typeName specified for ${schemaDef.srcFile}.${property}")
                 else {
                     val theType = schemaTypeName2TypescriptType(property.typeName!!)
                     if (theType==null) {
-                        throw RuntimeException("no mapping for type \"${property.typeName}\" in  ${schemaDef.srcFile}.${property}")
+                        throw RuntimeException("no mapping for type \"${property.typeName}\"  typeDef:${property.typeDefinition}  in  ${schemaDef.srcFile}.${property}")
                     } else theType
                 }
         return result!!
@@ -111,6 +111,13 @@ ${schemaDef.root.properties.map {
 """
     }.joinToString("")}
 }
+
+${schemaDef.root.properties
+            .filter{ it.isIntrinsicSchema && it.typeDefinition is SchemaDefinition}
+            .map{it.typeDefinition as SchemaDefinition}
+            .map{ """${typescriptSource(it, propertyToTypeString)}"""
+    }.joinToString ("""""" ) }
+
     """.trimIndent()
 }
 
