@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "http://typedpath.com/sample/person.json",
+  "id": "http://typedpath.com/main/person.json",
   "description": "A person",
   "type": "object",
   "properties": {
@@ -12,9 +12,16 @@
       "description": "The golf",
       "$ref": "simpletypedefs.json#/definitions/positiveInteger"
     },
+    "dateOfBirth": {
+      "format": "dateTime"
+    },
+
     "address": {
       "description": "The address",
       "$ref": "address.json"
+    },
+    "contactability": {
+      "$ref": "http://typedpath.com/external/contact-preference.json"
     },
     "personId": {
       "description": "id",
@@ -32,6 +39,12 @@
         "red": {
             "type": "integer"
          },
+        "green": {
+          "type": "integer"
+        },
+        "blue": {
+          "type": "integer"
+        },
         "colorId": {
           "description": "id",
           "$ref": "simpletypedefs.json#/definitions/uuid"

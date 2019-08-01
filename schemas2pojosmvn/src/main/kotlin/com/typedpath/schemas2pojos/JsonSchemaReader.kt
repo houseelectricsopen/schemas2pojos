@@ -16,53 +16,6 @@ const val DEFAULT_ENUM_TYPE = "string"
 // TODO checks at this level : duplicate ids in files
 // TODO constant for $ref
 
-open class TypeDefinition(val impliedShortName: String) {
-    fun impliedCapitalizedShortName() = impliedShortName.substring(0, 1).toUpperCase() + impliedShortName.substring(1)
-}
-
-class PrimitiveTypeDefinition(val name: String, val type: String, val description: String? = null, val pattern: String? = null) : TypeDefinition(type) {
-    override fun toString() = "$name, type:$type, desription:$description, pattern:$pattern "
-}
-
-class EnumTypeDefinition(val impliedPackage: String, impliedShortName: String, val description: String?,
-                         val enumValues: List<String>, val type: String) : TypeDefinition(impliedShortName) {
-    override fun toString() = "$impliedPackage.$impliedShortName, enum type:$type, desription:$description, enums:$enumValues "
-}
-
-class SchemaDefinition(val srcFile: File, val id: String,
-                       val definitions: Map<String, TypeDefinition>, val innerDefinitions: Map<String, SchemaDefinition>,
-                       val root: ClassSpec,
-                       val impliedPackage: String, impliedShortName: String) :
-        TypeDefinition(impliedShortName) {
-    var parent: SchemaDefinition? = null
-    var description: String? = null
-    val reference2ParentPath = mutableMapOf<TypeDefinition, Path>()
-
-    val idPath = id.replace("http://", "");
-    fun rootIdPath() : String{
-        var highest: SchemaDefinition = this
-        while (highest.parent!=null) highest = highest.parent!!
-        return highest.idPath
-    }
-
-    // create a type tree
-// TODO make isComplex a var since it depends on a lookup of contained property types
-    class PropertySpec(val optional: Boolean, val isList: Boolean, val isComplex: Boolean, val name: String,
-                       val isIntrinsicSchema: Boolean
-    ) {
-        var typeName: String? = null
-        var typeRef: String? = null
-        var description: String? = null
-        // to do make a type superclass
-        var typeDefinition: TypeDefinition? = null
-
-        override fun toString() = "name=$name typeName=$typeName typeRef=$typeRef optional=$optional isList=$isList description=$description"
-
-    }
-
-    class ClassSpec(val properties: List<PropertySpec>, val fullname: String)
-
-}
 
 /**
  * read a schema from json into memory, resolving references
@@ -99,6 +52,7 @@ fun stringToJson(strJson: String): ScriptObjectMirror {
 
 private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptional: Boolean, jsFile: File, contextualPackageName: String, parentContextualName: String): SchemaDefinition.PropertySpec {
     var typeNameAttr = jsProperty.get("type") as String?
+    var formatAttr = jsProperty.get("format") as String?
     var typeRefAttr: String? = null
     var isList = false
     var isComplex = false
@@ -136,6 +90,7 @@ private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptiona
         typeRef = typeRefAttr
         typeName = typeNameAttr
         typeDefinition = intrinsicSchema
+        format = formatAttr
         println("xxxxxx $name typeName: $typeName typeRef: $typeRef")
     }
 }

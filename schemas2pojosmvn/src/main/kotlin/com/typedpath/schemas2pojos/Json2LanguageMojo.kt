@@ -22,7 +22,7 @@ class Json2LanguageMojo : AbstractMojo() {
     @Parameter(defaultValue = "", property = "sourceIncludes", required = false)
     private val sourceIncludes: String? = null
 
-    class TypeMapping(var from : String?=null, var to: String?=null)
+    class TypeMapping(var from : String?=null, var format: String?=null, var to: String?=null)
 
     @Parameter(property = "typeMappings", required = true)
     private val typeMappings: List<TypeMapping>? = listOf()
@@ -51,10 +51,10 @@ class Json2LanguageMojo : AbstractMojo() {
 
         val destinationRootPath = Paths.get(destinationRoot)
 
-        fun schema2TypescriptTypeName(schemaName: String): String? {
+        fun schema2TypescriptTypeName(schemaName: String?, format: String?): String? {
 
             val matches = typeMappings!!
-                    .filter { it.from.equals(schemaName) }
+                    .filter { (it.from ==null || it.from.equals(schemaName)) && (it.format==null || it.format.equals(format))  }
                     .map { it.to }
             return if (matches.size==0) null else matches.first()
         }
@@ -63,7 +63,7 @@ class Json2LanguageMojo : AbstractMojo() {
         else null*/
 
         typeMappings!!.forEach {
-            println("$logPrefix typeMapping: ${it.from}=>${it.to}")
+            println("$logPrefix typeMapping: type:${it.from}, format:${it.format}=>${it.to}")
         }
 
         writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)

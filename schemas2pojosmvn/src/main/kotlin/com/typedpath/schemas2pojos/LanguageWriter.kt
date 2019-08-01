@@ -4,7 +4,7 @@ import java.nio.file.Path
 import java.util.*
 
 fun writeTypescript(schemaDefinitions: Map<String, SchemaDefinition>,
-                    destinationRootPath: Path, destinationPackage: String, schema2TypescriptTypeName: (String) -> String?) {
+                    destinationRootPath: Path, destinationPackage: String, schema2TypescriptTypeName: (String?, String?) -> String?) {
     // check references
     schemaDefinitions.entries.forEach {
         writeTypescript(it.key, it.value, destinationRootPath, destinationPackage, schema2TypescriptTypeName)
@@ -29,7 +29,7 @@ private fun dashedFileName(schemaDef: TypeDefinition): String {
 
 //TODO use or lose destinationPackage, or change to package remapper function
 private fun writeTypescript(id: String, schemaDef: SchemaDefinition, destinationRootPath: Path, destinationPackage: String,
-                            schemaTypeName2TypescriptType: (String) -> String?
+                            schemaTypeName2TypescriptType: (String?, String?) -> String?
                             ) {
 //    val destinationPackage = typescriptPackage(destinationRootPath, id)
     println("$id ${schemaDef.impliedPackage} ${schemaDef.impliedShortName}   <= ${schemaDef.srcFile}")
@@ -44,12 +44,12 @@ private fun writeTypescript(id: String, schemaDef: SchemaDefinition, destination
 
     fun propertyToTypeString(property: SchemaDefinition.PropertySpec): String {
         var result =
-                if (property.typeDefinition != null && property.typeDefinition is PrimitiveTypeDefinition) schemaTypeName2TypescriptType(property.typeDefinition!!.impliedShortName)
+                if (property.typeDefinition != null && property.typeDefinition is PrimitiveTypeDefinition) schemaTypeName2TypescriptType(property.typeDefinition!!.impliedShortName, property.format)
                 else if (property.typeDefinition != null && property.typeDefinition is SchemaDefinition) property.typeDefinition!!.impliedCapitalizedShortName()
                 else if (property.typeDefinition != null && property.typeDefinition is EnumTypeDefinition) "string"
-                else if (property.typeName==null) throw RuntimeException("property has null typeName specified for ${schemaDef.srcFile}.${property}")
+                //else if (property.typeName==null) throw RuntimeException("property has null typeName specified for ${schemaDef.srcFile}.${property}")
                 else {
-                    val theType = schemaTypeName2TypescriptType(property.typeName!!)
+                    val theType = schemaTypeName2TypescriptType(property.typeName, property.format)
                     if (theType==null) {
                         throw RuntimeException("no mapping for type \"${property.typeName}\"  typeDef:${property.typeDefinition}  in  ${schemaDef.srcFile}.${property}")
                     } else theType
@@ -97,7 +97,7 @@ private fun typescriptSource(schemaDef: SchemaDefinition, propertyToTypeString: 
             .filter{ ! (it.key is PrimitiveTypeDefinition) }
             .map {
                 val strPath = if (it.value.parent == null) "." else it.value.parent.toString()
-                """import { ${it.key.impliedCapitalizedShortName()} } from '${strPath}/${dashedFileName(it.key)}';"""
+                """import { ${it.key.impliedCapitalizedShortName()} } from '${strPath.replace('\\', '/')}/${dashedFileName(it.key)}';"""
             }
             .joinToString("""
 """)

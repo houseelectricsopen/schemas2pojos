@@ -35,10 +35,10 @@ public fun toFileFilter(strIncludes: List<String>): (File) -> Boolean {
 /**for debugging */
 fun main(args: Array<String>) {
 
-    val srcRelativePath = Paths.get("./src")
+    val srcRelativePath = Paths.get("./src/main/resources/samples")
 
     val schemaDefs = read(srcRelativePath,
-            toFileFilter(listOf("**/samples/*.json")))
+            toFileFilter(listOf("**/*.json")))
 
     schemaDefs.entries.forEach {
         println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")
@@ -52,9 +52,11 @@ fun main(args: Array<String>) {
 
     val destinationRootPath = Paths.get("target/generated")
 
-    fun schema2TypescriptTypeName(schemaName: String): String?  = if (schemaName.equals("string")) "string"
-                                                                  else if (schemaName.equals("int")) "number"
-                                                                  else if (schemaName.equals("integer")) "number"
+    fun schema2TypescriptTypeName(schemaName: String?, format: String?): String?  = if (schemaName!=null && schemaName.equals("string")) "string"
+                                                                  else if (schemaName!=null && schemaName.equals("int")) "number"
+                                                                  else if (schemaName!=null && schemaName.equals("integer")) "number"
+                                                                  else if (schemaName!=null && schemaName.equals("boolean")) "boolean"
+                                                                  else if (format.equals("dateTime")) "string"
                                                                   else null
 
     writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)

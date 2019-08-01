@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "http://typedpath.com/sample/simpletypedefs.json",
+  "id": "http://typedpath.com/main/simpletypedefs.json",
   "definitions": {
     "zipcode": {
       "description": "UK Gov post code",

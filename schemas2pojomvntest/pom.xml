@@ -29,6 +29,7 @@
                                 <typeMapping><from>integer</from><to>number</to></typeMapping>
                                 <typeMapping><from>int</from><to>number</to></typeMapping>
                                 <typeMapping><from>boolean</from><to>boolean</to></typeMapping>
+                                <typeMapping><format>dateTime</format><to>string</to></typeMapping>
                             </typeMappings>
                         </configuration>
                     </execution>

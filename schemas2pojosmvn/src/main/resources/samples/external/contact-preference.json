@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://typedpath.com/external/contact-preference.json",
+  "description": "Preferences",
+  "type": "object",
+  "properties": {
+    "byEmail": {
+      "type": "boolean"
+    },
+    "byPigeon": {
+      "type": "boolean"
+    }
+
+  }
+}

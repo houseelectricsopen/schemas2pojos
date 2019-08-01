@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "http://typedpath.com/sample/address.json",
+  "id": "http://typedpath.com/main/address.json",
   "description": "The address",
   "type": "object",
   "properties": {
