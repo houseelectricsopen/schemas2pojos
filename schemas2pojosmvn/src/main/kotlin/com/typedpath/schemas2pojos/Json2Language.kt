@@ -1,12 +1,5 @@
 package com.typedpath.schemas2pojos
 
-import org.apache.maven.plugin.AbstractMojo
-import org.apache.maven.plugin.MojoExecutionException
-import org.apache.maven.plugin.MojoFailureException
-import org.apache.maven.plugins.annotations.LifecyclePhase
-import org.apache.maven.plugins.annotations.Mojo
-import org.apache.maven.plugins.annotations.Parameter
-import java.nio.file.Path
 import java.nio.file.Paths
 
 import java.io.File
@@ -37,20 +30,20 @@ fun main(args: Array<String>) {
 
     val srcRelativePath = Paths.get("./src/main/resources/samples")
 
-    val schemaDefs = read(srcRelativePath,
+    val schemaDefs = readJsonSchema(srcRelativePath,
             toFileFilter(listOf("**/*.json")))
 
     schemaDefs.entries.forEach {
         println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")
         it.value.root.properties.forEach {
-            println("  prop: ${it} ");
+            println("  prop: ${it} ")
         }
         it.value.definitions.forEach {
             println("  def:  ${it}")
         }
     }
 
-    val destinationRootPath = Paths.get("target/generated")
+    var destinationRootPath = Paths.get("target/generated")
 
     fun schema2TypescriptTypeName(schemaName: String?, format: String?): String?  = if (schemaName!=null && schemaName.equals("string")) "string"
                                                                   else if (schemaName!=null && schemaName.equals("int")) "number"
@@ -59,7 +52,18 @@ fun main(args: Array<String>) {
                                                                   else if (format.equals("dateTime")) "string"
                                                                   else null
 
-    writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
+    //writeTypescript(schemaDefs, destinationRootPath, ::schema2TypescriptTypeName)
+
+    fun schema2JavaTypeName(schemaName: String?, format: String?): String?  = if (schemaName!=null && schemaName.equals("string")) "String"
+    else if (schemaName!=null && schemaName.equals("int")) "int"
+    else if (schemaName!=null && schemaName.equals("integer")) "int"
+    else if (schemaName!=null && schemaName.equals("boolean")) "boolean"
+    else if (format.equals("dateTime")) "java.util.Date"
+    else null
+
+
+    writeJava(schemaDefs, destinationRootPath, ::schema2JavaTypeName)
+
 
 }
 

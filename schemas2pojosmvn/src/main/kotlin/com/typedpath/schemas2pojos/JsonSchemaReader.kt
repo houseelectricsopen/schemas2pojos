@@ -18,11 +18,11 @@ const val DEFAULT_ENUM_TYPE = "string"
 
 
 /**
- * read a schema from json into memory, resolving references
+ * readJsonSchema a schema from json into memory, resolving references
  * kotlin or java would be better choices for schema definition because they make this step unnecessary
  * and make it impossible to define unresolvable references or ambiguous types
  */
-fun read(rootPath: Path, filter: (File) -> Boolean):
+fun readJsonSchema(rootPath: Path, filter: (File) -> Boolean):
         Map<String, SchemaDefinition> {
     val jsonFiles = mutableListOf<File>()
 
@@ -57,13 +57,13 @@ private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptiona
     var isList = false
     var isComplex = false
     var intrinsicSchema: SchemaDefinition? = null
-    //TODO read minItems
+    //TODO readJsonSchema minItems
     if ("array".equals(typeNameAttr)) {
         isList = true
         if (!jsProperty.containsKey("items")) {
-            throw java.lang.RuntimeException("failed to read array $name because items is not specified ")
+            throw java.lang.RuntimeException("failed to readJsonSchema array $name because items is not specified ")
         }
-        //TODO read items attribute
+        //TODO readJsonSchema items attribute
         val jsItems = jsProperty.get("items") as ScriptObjectMirror
         if (jsItems == null) {
             throw RuntimeException("failed to readFlat array property $name no items property")
@@ -81,7 +81,7 @@ private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptiona
             intrinsicSchema = jsonToSchemaDef(jsProperty, jsFile, contextualPackageName, "${parentContextualName}_$name")
         }
 
-        // TODO if there is no ref should try to read contained definition
+        // TODO if there is no ref should try to readJsonSchema contained definition
         // hence isComplex need to be a var
     }
 
@@ -122,10 +122,10 @@ private fun readTypeDefinition(impliedPackageName: String, name: String, jsDefin
         val enumValues = (jsDefinition.get("enum") as ScriptObjectMirror).values.map { it as String }.toList()
         EnumTypeDefinition(impliedPackageName, name, description, enumValues, type)
     } else {
-        return PrimitiveTypeDefinition(name, type!!, description,
+        return PrimitiveTypeDefinition(impliedPackageName, name, type!!, description,
                 jsDefinition.get("pattern") as String?)
     }
-    //TODO read object definitions too
+    //TODO readJsonSchema object definitions too
 
 
 }

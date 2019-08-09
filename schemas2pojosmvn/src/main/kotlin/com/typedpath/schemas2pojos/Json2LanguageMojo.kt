@@ -8,10 +8,16 @@ import org.apache.maven.plugins.annotations.Mojo
 import org.apache.maven.plugins.annotations.Parameter
 import java.nio.file.Paths
 
-@Mojo(name = "json2Typescript", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
-class Json2LanguageMojo : AbstractMojo() {
+@Mojo(name = "schema2language", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+class Schema2LanguageMojo : AbstractMojo() {
 
     private val logPrefix = javaClass.name;
+
+    @Parameter( property = "schemaFormat", required = true)
+    private val schemaFormat: String? = null
+
+    @Parameter( property = "destinationFormat", required = true)
+    private val destinationFormat: String? = null
 
     @Parameter(defaultValue = "", property = "sourceRoot", required = true)
     private val sourceRoot: String? = null
@@ -31,11 +37,13 @@ class Json2LanguageMojo : AbstractMojo() {
     override fun execute() {
         val srcRelativePath = Paths.get(sourceRoot)
 
-
         println(" searching $srcRelativePath with includes $sourceIncludes")
 
-        val schemaDefs = read(srcRelativePath,
-                toFileFilter(if (sourceIncludes == null) listOf("*/**/json") else sourceIncludes.split(",")))
+        val schemaDefs =
+                if ("json".equals(schemaFormat)) {
+                    readJsonSchema(srcRelativePath,
+                            toFileFilter(if (sourceIncludes == null) listOf("*/**/json") else sourceIncludes.split(",")))
+                } else throw MojoExecutionException("""schema format "$schemaFormat" is not supported - only "json" is supported""")
 
         println("$logPrefix found ${schemaDefs.size} files in sourceRoot(path):${srcRelativePath.toAbsolutePath()} sourceIncludes:$sourceIncludes")
 
@@ -51,22 +59,23 @@ class Json2LanguageMojo : AbstractMojo() {
 
         val destinationRootPath = Paths.get(destinationRoot)
 
-        fun schema2TypescriptTypeName(schemaName: String?, format: String?): String? {
+        fun schema2TypeName(schemaName: String?, format: String?): String? {
 
             val matches = typeMappings!!
                     .filter { (it.from ==null || it.from.equals(schemaName)) && (it.format==null || it.format.equals(format))  }
                     .map { it.to }
             return if (matches.size==0) null else matches.first()
         }
-        /*if (schemaName.equals("string")) "string"
-        else if (schemaName.equals("int")) "number"
-        else null*/
 
         typeMappings!!.forEach {
             println("$logPrefix typeMapping: type:${it.from}, format:${it.format}=>${it.to}")
         }
 
-        writeTypescript(schemaDefs, destinationRootPath, "com.coconuts", ::schema2TypescriptTypeName)
+        if ("typescript".equals(destinationFormat)) {
+            writeTypescript(schemaDefs, destinationRootPath, ::schema2TypeName)
+        } else if ("java".equals(destinationFormat)) {
+            writeJava(schemaDefs, destinationRootPath, ::schema2TypeName)
+        } else throw MojoExecutionException(""" invalid destinationFormat: "$destinationFormat"  only destination formats "java" and "typescript" are supported    """)
 
     }
 }

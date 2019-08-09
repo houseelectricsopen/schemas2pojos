@@ -4,7 +4,7 @@ import java.io.File
 import java.lang.StringBuilder
 import java.nio.file.Path
 
-open class TypeDefinition(val impliedShortName: String) {
+open class TypeDefinition(val impliedPackage: String, val impliedShortName: String) {
     fun impliedCapitalizedShortName() : String{
         //camelcase it
         val sb = StringBuilder()
@@ -22,20 +22,20 @@ open class TypeDefinition(val impliedShortName: String) {
     }
 }
 
-class PrimitiveTypeDefinition(val name: String, val type: String, val description: String? = null, val pattern: String? = null) : TypeDefinition(type) {
+class PrimitiveTypeDefinition(impliedPackage: String, val name: String, val type: String, val description: String? = null, val pattern: String? = null) : TypeDefinition(impliedPackage, type) {
     override fun toString() = "$name, type:$type, desription:$description, pattern:$pattern "
 }
 
-class EnumTypeDefinition(val impliedPackage: String, impliedShortName: String, val description: String?,
-                         val enumValues: List<String>, val type: String) : TypeDefinition(impliedShortName) {
+class EnumTypeDefinition(impliedPackage: String, impliedShortName: String, val description: String?,
+                         val enumValues: List<String>, val type: String) : TypeDefinition(impliedPackage, impliedShortName) {
     override fun toString() = "$impliedPackage.$impliedShortName, enum type:$type, desription:$description, enums:$enumValues "
 }
 
 class SchemaDefinition(val srcFile: File, val id: String,
                        val definitions: Map<String, TypeDefinition>, val innerDefinitions: Map<String, SchemaDefinition>,
                        val root: ClassSpec,
-                       val impliedPackage: String, impliedShortName: String) :
-        TypeDefinition(impliedShortName) {
+                       impliedPackage: String, impliedShortName: String) :
+        TypeDefinition(impliedPackage, impliedShortName) {
     var parent: SchemaDefinition? = null
     var description: String? = null
     val reference2ParentPath = mutableMapOf<TypeDefinition, Path>()

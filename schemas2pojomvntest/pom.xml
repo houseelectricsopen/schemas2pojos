@@ -18,9 +18,11 @@
                         <phase>generate-sources</phase>
                         <id>json2Typescript</id>
                         <goals>
-                            <goal>json2Typescript</goal>
+                            <goal>schema2language</goal>
                         </goals>
                         <configuration>
+                            <schemaFormat>json</schemaFormat>
+                            <destinationFormat>typescript</destinationFormat>
                             <sourceRoot>${project.basedir}/src/main/resources/samples</sourceRoot>
                             <sourceIncludes>**/*.json</sourceIncludes>
                             <destinationRoot>${project.basedir}/target/typescript</destinationRoot>
@@ -33,10 +35,51 @@
                             </typeMappings>
                         </configuration>
                     </execution>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <id>json2java</id>
+                        <goals>
+                            <goal>schema2language</goal>
+                        </goals>
+                        <configuration>
+                            <schemaFormat>json</schemaFormat>
+                            <destinationFormat>java</destinationFormat>
+                            <sourceRoot>${project.basedir}/src/main/resources/samples</sourceRoot>
+                            <sourceIncludes>**/*.json</sourceIncludes>
+                            <destinationRoot>${project.basedir}/target/generated-sources</destinationRoot>
+                            <typeMappings>
+                                <typeMapping><from>string</from><to>String</to></typeMapping>
+                                <typeMapping><from>integer</from><to>int</to></typeMapping>
+                                <typeMapping><from>int</from><to>int</to></typeMapping>
+                                <typeMapping><from>boolean</from><to>Boolean</to></typeMapping>
+                                <typeMapping><format>dateTime</format><to>java.util.Date</to></typeMapping>
+                            </typeMappings>
+                        </configuration>
+                    </execution>
                 </executions>
                 <dependencies>
                 </dependencies>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.7</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>target/generated-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
     </build>
 </project>
