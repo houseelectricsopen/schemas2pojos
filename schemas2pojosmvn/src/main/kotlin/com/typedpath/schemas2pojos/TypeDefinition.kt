@@ -20,7 +20,14 @@ open class TypeDefinition(val impliedPackage: String, val impliedShortName: Stri
         }
         return sb.toString()
     }
+
+    fun startLowerCaseShortName() : String {
+        val capShort = impliedCapitalizedShortName()
+        return "${capShort.substring(0, 1).toLowerCase()}${capShort.substring(1)}"
+    }
 }
+
+
 
 class PrimitiveTypeDefinition(impliedPackage: String, val name: String, val type: String, val description: String? = null, val pattern: String? = null) : TypeDefinition(impliedPackage, type) {
     override fun toString() = "$name, type:$type, desription:$description, pattern:$pattern "

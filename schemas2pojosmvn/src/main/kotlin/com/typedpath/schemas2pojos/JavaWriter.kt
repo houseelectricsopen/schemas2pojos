@@ -45,8 +45,6 @@ private fun javaSource(schemaDef: SchemaDefinition, propertyToTypeString: (Schem
                        parent: SchemaDefinition? =  null
 ): String {
     val classShortName = schemaDef.impliedCapitalizedShortName()
-    fun optionalDesignator(p: SchemaDefinition.PropertySpec) = if (p.optional) "?" else ""
-    fun oneToManyDesignator(p: SchemaDefinition.PropertySpec) = if (p.isList) "[]" else ""
     fun descriptionLine(p: SchemaDefinition.PropertySpec) = if (p.description.isNullOrBlank()) "" else """//${p.description}
 """
     //collect all the imports
@@ -58,6 +56,8 @@ private fun javaSource(schemaDef: SchemaDefinition, propertyToTypeString: (Schem
             }
             .joinToString("""
 """)
+    var indentStep = "    "
+    var indent = indentStep
     return """
 ${if (parent==null) """
 // created by JavaWriter.kt on ${Date()}
@@ -69,21 +69,20 @@ public class $classShortName  implements java.io.Serializable {""" else
     }
 
 ${schemaDef.root.properties.map {
-"""${descriptionLine(it)}    private ${propertyToTypeString(it)} ${it.name};
-    public void set${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
-        ${it.name} = value;
-    }
-    public ${propertyToTypeString(it)} get${it.name.capitalize()}() {
-        return ${it.name};
-    }
+"""${descriptionLine(it)}${indent}private ${propertyToTypeString(it)} ${it.name};
+${indent}public void set${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
+${indent}${indentStep}${it.name} = value;
+${indent}}
+${indent}public ${propertyToTypeString(it)} get${it.name.capitalize()}() {
+${indent}${indentStep}return ${it.name};
+${indent}}
 """
     }.joinToString("")}
 
-
-    public $classShortName (${schemaDef.root.properties.map{"""${propertyToTypeString(it)} ${it.name}"""}.joinToString (", ")}) {
-${schemaDef.root.properties.map{"""        this.${it.name} = ${it.name};"""}.joinToString ("""
+${indent}public $classShortName (${schemaDef.root.properties.map{"""${propertyToTypeString(it)} ${it.name}"""}.joinToString (", ")}) {
+${schemaDef.root.properties.map{"""${indent}${indentStep}this.${it.name} = ${it.name};"""}.joinToString ("""
 """)}
-    }
+${indent}}
 
 ${schemaDef.root.properties
             .filter{ it.isIntrinsicSchema && it.typeDefinition is SchemaDefinition}
@@ -91,6 +90,42 @@ ${schemaDef.root.properties
             .map{ """${javaSource(it, propertyToTypeString, schemaDef)}"""
             }.joinToString ("""""" ) }
 
+${builderSource(schemaDef, propertyToTypeString, indent, indentStep)}
+
 }
-    """.trimIndent()
+
+
+
+${indent}""".trimIndent()
 }
+
+private fun builderSource(schemaDef: SchemaDefinition, propertyToTypeString: (SchemaDefinition.PropertySpec) -> String,
+                          indent: String, indentStep: String) : String{
+return """
+${indent}public static Builder ${schemaDef.startLowerCaseShortName()}() {
+${indent}${indentStep}return new ${schemaDef.impliedCapitalizedShortName()}.Builder();
+${indent}}
+
+${indent}public static class Builder {
+${schemaDef.root.properties.map {
+"""${indent}private ${propertyToTypeString(it)} ${it.name};
+${indent}public void with${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
+${indent}${indentStep}${it.name} = value;
+${indent}}
+"""
+    }.joinToString("")}
+
+${indent}public ${schemaDef.impliedCapitalizedShortName()} build() {
+${indent}${indentStep}return new ${schemaDef.impliedCapitalizedShortName()}(${schemaDef.root.properties.map {
+    """${it.name}"""
+}.joinToString(", ")});
+${indent}}
+}
+
+
+
+${indent}""".trimIndent()
+
+}
+
+
