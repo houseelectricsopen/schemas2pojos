@@ -4,16 +4,16 @@ import java.nio.file.Path
 
 
 fun writeLanguage(schemaDefinitions: Map<String, SchemaDefinition>,
-                  destinationRootPath: Path, schema2TypescriptTypeName: (String?, String?) -> String?,
+                  destinationRootPath: Path, schema2TypeName: (String?, String?) -> String?,
                   fileExtension: String,
                   convertToClassSource : (SchemaDefinition, (SchemaDefinition.PropertySpec) -> String, parent: SchemaDefinition?)->String,
                   convertToEnumSource : (EnumTypeDefinition)->String,
                   toShortFileName: (TypeDefinition) -> String) {
     // check references
     schemaDefinitions.entries.forEach {
-        writeLanguage(it.key, it.value, destinationRootPath,  schema2TypescriptTypeName, fileExtension, convertToClassSource, convertToEnumSource, toShortFileName)
+        writeLanguage(it.key, it.value, destinationRootPath,  schema2TypeName, fileExtension, convertToClassSource, convertToEnumSource, toShortFileName)
         it.value.innerDefinitions.forEach {
-            writeLanguage(it.key, it.value, destinationRootPath,  schema2TypescriptTypeName, fileExtension, convertToClassSource, convertToEnumSource, toShortFileName)
+            writeLanguage(it.key, it.value, destinationRootPath,  schema2TypeName, fileExtension, convertToClassSource, convertToEnumSource, toShortFileName)
         }
     }
 }

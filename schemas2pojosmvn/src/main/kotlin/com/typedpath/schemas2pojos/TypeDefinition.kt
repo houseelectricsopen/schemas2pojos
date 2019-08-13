@@ -4,6 +4,7 @@ import java.io.File
 import java.lang.StringBuilder
 import java.nio.file.Path
 
+
 open class TypeDefinition(val impliedPackage: String, val impliedShortName: String) {
     fun impliedCapitalizedShortName() : String{
         //camelcase it

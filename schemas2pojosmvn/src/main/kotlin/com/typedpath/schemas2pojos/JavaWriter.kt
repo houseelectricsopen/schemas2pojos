@@ -4,16 +4,14 @@ import java.nio.file.Path
 import java.util.*
 
 fun writeJava(schemaDefinitions: Map<String, SchemaDefinition>,
-                    destinationRootPath: Path, schema2TyLpescriptTypeName: (String?, String?) -> String?) {
-    writeLanguage(schemaDefinitions, destinationRootPath,  schema2TyLpescriptTypeName, "java",
+              destinationRootPath: Path, schema2TypeName: (String?, String?) -> String?) {
+    writeLanguage(schemaDefinitions, destinationRootPath,  schema2TypeName, "java",
             ::javaSource, ::javaEnumSource, ::javaFileName)
 }
-
 
 private fun javaFileName(typeDef: TypeDefinition): String {
     return typeDef.impliedCapitalizedShortName()
 }
-
 
 private fun javaEnumSource(enumDef: EnumTypeDefinition): String {
     val result: String =
@@ -41,6 +39,7 @@ ${enumDef.enumValues.map{
     return result
 }
 
+//TODO implement optionality with /javax/validation/constraints/NotNull.html
 private fun javaSource(schemaDef: SchemaDefinition, propertyToTypeString: (SchemaDefinition.PropertySpec) -> String ,
                        parent: SchemaDefinition? =  null
 ): String {
@@ -58,6 +57,13 @@ private fun javaSource(schemaDef: SchemaDefinition, propertyToTypeString: (Schem
 """)
     var indentStep = "    "
     var indent = indentStep
+
+    val propertyTypeToStringWithCardinalty  =
+            {
+                p:  SchemaDefinition.PropertySpec ->
+                   if (p.isList) "java.util.List<${propertyToTypeString(p)}>" else propertyToTypeString(p)
+            }
+
     return """
 ${if (parent==null) """
 // created by JavaWriter.kt on ${Date()}
@@ -67,19 +73,19 @@ ${if (!schemaDef.description.isNullOrBlank()) "//${schemaDef.description}" else 
 public class $classShortName  implements java.io.Serializable {""" else
 """public static class $classShortName  implements java.io.Serializable {"""
     }
-
+//TODO deal with 1 to many i.e. create List<>
 ${schemaDef.root.properties.map {
-"""${descriptionLine(it)}${indent}private ${propertyToTypeString(it)} ${it.name};
-${indent}public void set${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
+"""${descriptionLine(it)}${indent}private ${propertyTypeToStringWithCardinalty(it)} ${it.name};
+${indent}public void set${it.name.capitalize()}(final ${propertyTypeToStringWithCardinalty(it)} value) {
 ${indent}${indentStep}${it.name} = value;
 ${indent}}
-${indent}public ${propertyToTypeString(it)} get${it.name.capitalize()}() {
+${indent}public ${propertyTypeToStringWithCardinalty(it)} get${it.name.capitalize()}() {
 ${indent}${indentStep}return ${it.name};
 ${indent}}
 """
     }.joinToString("")}
 
-${indent}public $classShortName (${schemaDef.root.properties.map{"""${propertyToTypeString(it)} ${it.name}"""}.joinToString (", ")}) {
+${indent}public $classShortName (${schemaDef.root.properties.map{"""${propertyTypeToStringWithCardinalty(it)} ${it.name}"""}.joinToString (", ")}) {
 ${schemaDef.root.properties.map{"""${indent}${indentStep}this.${it.name} = ${it.name};"""}.joinToString ("""
 """)}
 ${indent}}
@@ -90,11 +96,8 @@ ${schemaDef.root.properties
             .map{ """${javaSource(it, propertyToTypeString, schemaDef)}"""
             }.joinToString ("""""" ) }
 
-${builderSource(schemaDef, propertyToTypeString, indent, indentStep)}
-
+${builderSource(schemaDef, propertyTypeToStringWithCardinalty, indent, indentStep)}
 }
-
-
 
 ${indent}""".trimIndent()
 }
@@ -109,8 +112,9 @@ ${indent}}
 ${indent}public static class Builder {
 ${schemaDef.root.properties.map {
 """${indent}private ${propertyToTypeString(it)} ${it.name};
-${indent}public void with${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
+${indent}public Builder with${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
 ${indent}${indentStep}${it.name} = value;
+${indent}${indentStep}return this;
 ${indent}}
 """
     }.joinToString("")}
