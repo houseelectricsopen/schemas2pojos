@@ -27,7 +27,7 @@ private fun writeLanguage(id: String, schemaDef: SchemaDefinition, destinationRo
                             ) {
     println("$id ${schemaDef.impliedPackage} ${schemaDef.impliedShortName}   <= ${schemaDef.srcFile}")
     var destinationParentPath = destinationRootPath;
-    destinationParentPath = destinationParentPath.resolve(fileExtension)
+    //destinationParentPath = destinationParentPath.resolve(fileExtension)
     schemaDef.impliedPackage.split(".").forEach {
         destinationParentPath = destinationParentPath.resolve(it)
     }

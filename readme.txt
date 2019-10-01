@@ -1,1 +1,0 @@
-#maps schemas to pojos

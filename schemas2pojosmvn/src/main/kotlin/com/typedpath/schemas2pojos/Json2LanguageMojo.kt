@@ -75,6 +75,8 @@ class Schema2LanguageMojo : AbstractMojo() {
             writeTypescript(schemaDefs, destinationRootPath, ::schema2TypeName)
         } else if ("java".equals(destinationFormat)) {
             writeJava(schemaDefs, destinationRootPath, ::schema2TypeName)
+        } else if ("kotlin".equals(destinationFormat)) {
+            writeKotlin(schemaDefs, destinationRootPath, ::schema2TypeName)
         } else throw MojoExecutionException(""" invalid destinationFormat: "$destinationFormat"  only destination formats "java" and "typescript" are supported    """)
 
     }

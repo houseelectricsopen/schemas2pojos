@@ -5,7 +5,22 @@
     <groupId>com.typedpath</groupId>
     <artifactId>schemas2pojosmvnsample</artifactId>
     <version>1.0.1</version>
+    <properties>
+        <kotlin.version>1.3.50</kotlin.version>
+    </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-test</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -25,7 +40,7 @@
                             <destinationFormat>typescript</destinationFormat>
                             <sourceRoot>${project.basedir}/src/main/resources/samples</sourceRoot>
                             <sourceIncludes>**/*.json</sourceIncludes>
-                            <destinationRoot>${project.basedir}/target/typescript</destinationRoot>
+                            <destinationRoot>${project.basedir}/target/generated-sources/typescript</destinationRoot>
                             <typeMappings>
                                 <typeMapping><from>string</from><to>string</to></typeMapping>
                                 <typeMapping><from>integer</from><to>number</to></typeMapping>
@@ -46,7 +61,7 @@
                             <destinationFormat>java</destinationFormat>
                             <sourceRoot>${project.basedir}/src/main/resources/samples</sourceRoot>
                             <sourceIncludes>**/*.json</sourceIncludes>
-                            <destinationRoot>${project.basedir}/target/generated-sources</destinationRoot>
+                            <destinationRoot>${project.basedir}/target/generated-sources/java</destinationRoot>
                             <typeMappings>
                                 <typeMapping><from>string</from><to>String</to></typeMapping>
                                 <typeMapping><from>integer</from><to>int</to></typeMapping>
@@ -56,10 +71,105 @@
                             </typeMappings>
                         </configuration>
                     </execution>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <id>json2kotlin</id>
+                        <goals>
+                            <goal>schema2language</goal>
+                        </goals>
+                        <configuration>
+                            <schemaFormat>json</schemaFormat>
+                            <destinationFormat>kotlin</destinationFormat>
+                            <sourceRoot>${project.basedir}/src/main/resources/ksamples</sourceRoot>
+                            <sourceIncludes>**/s3CreateObjectEvent.json</sourceIncludes>
+                            <destinationRoot>${project.basedir}/target/generated-sources</destinationRoot>
+                            <typeMappings>
+                                <typeMapping><from>string</from><to>String</to></typeMapping>
+                                <typeMapping><from>integer</from><to>kotlin.Int</to></typeMapping>
+                                <typeMapping><from>int</from><to>kotlin.Int</to></typeMapping>
+                                <typeMapping><from>boolean</from><to>Boolean</to></typeMapping>
+                                <typeMapping><format>dateTime</format><to>java.util.Date</to></typeMapping>
+                            </typeMappings>
+                        </configuration>
+                    </execution>
                 </executions>
                 <dependencies>
                 </dependencies>
             </plugin>
+
+            <!-- -->
+            <plugin>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <configuration>
+                    <jvmTarget>1.8</jvmTarget>
+                </configuration>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <version>${kotlin.version}</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals> <goal>compile</goal> </goals>
+                        <configuration>
+                            <sourceDirs>
+                                <source>target/generated-sources/java</source>
+                                <source>target/generated-sources/kotlin</source>
+                            </sourceDirs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals> <goal>test-compile</goal> </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <!-- Replacing default-compile as it is treated specially by maven -->
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <!-- Replacing default-testCompile as it is treated specially by maven -->
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>java-compile</id>
+                        <phase>compile</phase>
+                        <goals> <goal>compile</goal> </goals>
+                    </execution>
+                    <execution>
+                        <id>java-test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals> <goal>testCompile</goal> </goals>
+                    </execution>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>testCompile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- -->
+
+
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>

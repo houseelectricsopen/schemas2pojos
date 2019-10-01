@@ -1,16 +1,6 @@
 package com.typedpath.schemas2pojos
 
-import jdk.nashorn.api.scripting.ScriptObjectMirror
-import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
-import javax.script.ScriptEngineManager
-
-
-const val DEFINITIONS_PROPERTYNAME = "definitions"
-const val DEFINITIONS_PATH_PREFIX = "#/" + DEFINITIONS_PROPERTYNAME + "/"
-const val DEFINITIONS_PREFIX = "/" + DEFINITIONS_PROPERTYNAME + "/"
-const val DEFAULT_ENUM_TYPE = "string"
+import kotlin.reflect.KClass
 
 
 // TODO checks at this level : duplicate ids in files
@@ -22,7 +12,7 @@ const val DEFAULT_ENUM_TYPE = "string"
  * kotlin or java would be better choices for schema definition because they make this step unnecessary
  * and make it impossible to define unresolvable references or ambiguous types
  */
-fun readJsonSchema(rootPath: Path, filter: (File) -> Boolean):
+fun readKotlinSchema(rootPath: KClass<Any>, filter: (KClass<Any>) -> Boolean):
         Map<String, SchemaDefinition> {
     val jsonFiles = mutableListOf<File>()
 
@@ -69,14 +59,8 @@ private fun readProperty(name: String, jsProperty: ScriptObjectMirror, isOptiona
             throw RuntimeException("failed to readFlat array property $name no items property")
         }
         typeRefAttr = jsItems.get("\$ref") as String?
-        val listItemType = if (jsItems.containsKey("type")) jsItems.get("type") else null
-        val listItemIsComplex = "object".equals(listItemType)
-        if (typeRefAttr == null && listItemIsComplex) {
-            //readProperties()
-            intrinsicSchema = jsonToSchemaDef(jsItems, jsFile, contextualPackageName, "${parentContextualName}_$name")
-        }
-        else if (listItemType!=null) {
-            typeNameAttr = listItemType as String
+        if (jsItems.containsKey("type")) {
+            typeNameAttr = jsItems.get("type") as String
         }
 
     } else {

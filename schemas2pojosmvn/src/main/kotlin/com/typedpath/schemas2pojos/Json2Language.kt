@@ -8,7 +8,7 @@ import java.nio.file.PathMatcher
 import java.util.stream.Collectors
 
 
-public fun toFileFilter(strIncludes: List<String>): (File) -> Boolean {
+fun toFileFilter(strIncludes: List<String>): (File) -> Boolean {
     val actualIncludes =
             if (strIncludes.isEmpty()) {
                 listOf("**/*.json")
@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
     val srcRelativePath = Paths.get("./src/main/resources/samples")
 
     val schemaDefs = readJsonSchema(srcRelativePath,
-            toFileFilter(listOf("**/*.json")))
+            toFileFilter(listOf("**/s3*.json")))
 
     schemaDefs.entries.forEach {
         println("${it.value.srcFile.path} => ${it.value.id} => ${it.value.root.fullname}")
@@ -63,7 +63,7 @@ fun main(args: Array<String>) {
 
 
     writeJava(schemaDefs, destinationRootPath, ::schema2JavaTypeName)
-
+    writeKotlin(schemaDefs, destinationRootPath, ::schema2JavaTypeName)
 
 }
 

@@ -4,23 +4,25 @@ import java.io.File
 import java.lang.StringBuilder
 import java.nio.file.Path
 
+private fun camelCase(str: String) : String  {
+    val sb = StringBuilder()
+    var firstWord = true
+    var wordStart=true
+    for (i in 0..str.length-1) {
+        val char = str.get(i)
+        if (!char.isDigit() && !char.isLetter()) {
+            wordStart=true;
+        } else {
+            sb.append(if(wordStart && !firstWord) char.toUpperCase() else char)
+            wordStart = false
+            firstWord = false
+        }
+    }
+    return sb.toString()
+}
 
 open class TypeDefinition(val impliedPackage: String, val impliedShortName: String) {
-    fun impliedCapitalizedShortName() : String{
-        //camelcase it
-        val sb = StringBuilder()
-        var wordStart=true
-        for (i in 0..impliedShortName.length-1) {
-            val char = impliedShortName.get(i)
-            if (!char.isDigit() && !char.isLetter()) {
-                wordStart=true;
-            } else {
-                sb.append(if(wordStart) char.toUpperCase() else char)
-                wordStart = false
-            }
-        }
-        return sb.toString()
-    }
+    fun impliedCapitalizedShortName() : String = camelCase(impliedShortName).capitalize()
 
     fun startLowerCaseShortName() : String {
         val capShort = impliedCapitalizedShortName()
@@ -60,6 +62,7 @@ class SchemaDefinition(val srcFile: File, val id: String,
     class PropertySpec(val optional: Boolean, val isList: Boolean, val isComplex: Boolean, val name: String,
                        val isIntrinsicSchema: Boolean
     ) {
+        val camelCaseName = camelCase(name).substring(0, 1).toLowerCase() + camelCase(name).substring(1)
         var typeName: String? = null
         var format: String? = null
         var typeRef: String? = null

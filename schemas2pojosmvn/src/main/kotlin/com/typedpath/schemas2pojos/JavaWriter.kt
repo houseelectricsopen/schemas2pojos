@@ -5,7 +5,7 @@ import java.util.*
 
 fun writeJava(schemaDefinitions: Map<String, SchemaDefinition>,
               destinationRootPath: Path, schema2TypeName: (String?, String?) -> String?) {
-    writeLanguage(schemaDefinitions, destinationRootPath,  schema2TypeName, "java",
+    writeLanguage(schemaDefinitions, destinationRootPath.resolve("java"),  schema2TypeName, "java",
             ::javaSource, ::javaEnumSource, ::javaFileName)
 }
 
@@ -75,18 +75,18 @@ public class $classShortName  implements java.io.Serializable {""" else
     }
 //TODO deal with 1 to many i.e. create List<>
 ${schemaDef.root.properties.map {
-"""${descriptionLine(it)}${indent}private ${propertyTypeToStringWithCardinalty(it)} ${it.name};
-${indent}public void set${it.name.capitalize()}(final ${propertyTypeToStringWithCardinalty(it)} value) {
-${indent}${indentStep}${it.name} = value;
+"""${descriptionLine(it)}${indent}private ${propertyTypeToStringWithCardinalty(it)} ${it.camelCaseName};
+${indent}public void set${it.camelCaseName.capitalize()}(final ${propertyTypeToStringWithCardinalty(it)} value) {
+${indent}${indentStep}${it.camelCaseName} = value;
 ${indent}}
-${indent}public ${propertyTypeToStringWithCardinalty(it)} get${it.name.capitalize()}() {
-${indent}${indentStep}return ${it.name};
+${indent}public ${propertyTypeToStringWithCardinalty(it)} get${it.camelCaseName.capitalize()}() {
+${indent}${indentStep}return ${it.camelCaseName};
 ${indent}}
 """
     }.joinToString("")}
 
-${indent}public $classShortName (${schemaDef.root.properties.map{"""${propertyTypeToStringWithCardinalty(it)} ${it.name}"""}.joinToString (", ")}) {
-${schemaDef.root.properties.map{"""${indent}${indentStep}this.${it.name} = ${it.name};"""}.joinToString ("""
+${indent}public $classShortName (${schemaDef.root.properties.map{"""${propertyTypeToStringWithCardinalty(it)} ${it.camelCaseName}"""}.joinToString (", ")}) {
+${schemaDef.root.properties.map{"""${indent}${indentStep}this.${it.camelCaseName} = ${it.camelCaseName};"""}.joinToString ("""
 """)}
 ${indent}}
 
@@ -111,9 +111,9 @@ ${indent}}
 
 ${indent}public static class Builder {
 ${schemaDef.root.properties.map {
-"""${indent}private ${propertyToTypeString(it)} ${it.name};
-${indent}public Builder with${it.name.capitalize()}(final ${propertyToTypeString(it)} value) {
-${indent}${indentStep}${it.name} = value;
+"""${indent}private ${propertyToTypeString(it)} ${it.camelCaseName};
+${indent}public Builder with${it.camelCaseName.capitalize()}(final ${propertyToTypeString(it)} value) {
+${indent}${indentStep}${it.camelCaseName} = value;
 ${indent}${indentStep}return this;
 ${indent}}
 """
@@ -121,7 +121,7 @@ ${indent}}
 
 ${indent}public ${schemaDef.impliedCapitalizedShortName()} build() {
 ${indent}${indentStep}return new ${schemaDef.impliedCapitalizedShortName()}(${schemaDef.root.properties.map {
-    """${it.name}"""
+    """${it.camelCaseName}"""
 }.joinToString(", ")});
 ${indent}}
 }
